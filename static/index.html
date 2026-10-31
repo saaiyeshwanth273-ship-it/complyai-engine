@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComplyAI | Compliance Intelligence</title>
+<style>
+:root {
+  --bg: #0b1020;
+  --panel: #141c30;
+  --panel2: #1b2740;
+  --text: #edf2ff;
+  --muted: #9aa9c4;
+  --accent: #72a7ff;
+  --border: #293650;
+  --green: #52d6a0;
+  --red: #ff777f;
+  --yellow: #ffcc70;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+}
+header {
+  padding: 22px 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.brand { font-size: 23px; font-weight: 800; letter-spacing: -.7px; }
+.brand span { color: var(--accent); }
+.status { color: var(--green); font-size: 13px; }
+main { max-width: 1200px; margin: auto; padding: 38px 22px 70px; }
+.hero { margin-bottom: 30px; }
+.eyebrow {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 11px;
+  font-weight: 700;
+}
+h1 { font-size: clamp(30px, 5vw, 46px); margin: 12px 0; }
+.subtitle { color: var(--muted); line-height: 1.7; max-width: 720px; }
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 23px;
+  margin-bottom: 20px;
+}
+h2 { font-size: 18px; margin: 0 0 20px; }
+h3 { font-size: 16px; }
+label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 15px 0 7px;
+}
+input, select, textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0e1729;
+  color: var(--text);
+  padding: 12px;
+  font: inherit;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 190px; line-height: 1.6; }
+button {
+  background: var(--accent);
+  color: #081326;
+  border: 0;
+  border-radius: 8px;
+  padding: 13px 20px;
+  font-weight: 750;
+  cursor: pointer;
+}
+button:disabled { opacity: .5; cursor: wait; }
+.primary { width: 100%; margin-top: 18px; }
+.small { font-size: 12px; color: var(--muted); }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+.stat {
+  background: var(--panel2);
+  padding: 17px;
+  border-radius: 10px;
+}
+.stat strong { display: block; font-size: 25px; margin-bottom: 5px; }
+.stat span { color: var(--muted); font-size: 11px; }
+.result { display: none; }
+.finding {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 17px;
+  margin: 12px 0;
+  background: #101a2d;
+}
+.finding h3 { margin: 8px 0; }
+.finding p { color: #c1cce0; font-size: 13px; line-height: 1.65; }
+.tag {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--panel2);
+}
+.HIGH, .CRITICAL { color: var(--red); }
+.MEDIUM { color: var(--yellow); }
+.LOW { color: var(--green); }
+.steps { color: #c1cce0; line-height: 1.8; font-size: 13px; }
+.source { padding: 13px 0; border-bottom: 1px solid var(--border); }
+.source a { color: var(--accent); font-size: 12px; }
+.source p { color: var(--muted); font-size: 12px; }
+.warning {
+  color: var(--yellow);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 18px;
+}
+.error { color: var(--red); white-space: pre-wrap; margin-top: 14px; }
+footer {
+  border-top: 1px solid var(--border);
+  padding: 25px 5%;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+@media(max-width:750px) {
+  .grid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  header { padding: 18px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Comply<span>AI</span></div>
+  <div class="status" id="serverStatus">● Connecting...</div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow">Compliance intelligence platform</div>
+    <h1>Know your compliance.<br>Reduce your risk.</h1>
+    <p class="subtitle">
+      Analyze company policies against the regulatory reference records
+      currently loaded into your local ComplyAI engine.
+    </p>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>01 / Business profile</h2>
+
+      <label>Company name</label>
+      <input id="company" value="My Company Pvt Ltd">
+
+      <label>Country</label>
+      <select id="country">
+        <option>India</option>
+      </select>
+
+      <label>State</label>
+      <input id="state" value="Tamil Nadu">
+
+      <label>Business type</label>
+      <select id="businessType">
+        <option>Private Limited Company</option>
+        <option>Limited Liability Partnership</option>
+        <option>Partnership</option>
+        <option>Proprietorship</option>
+        <option>Startup</option>
+        <option>Other</option>
+      </select>
+
+      <label>Industry</label>
+      <input id="industry" value="Information Technology">
+
+      <label>Number of employees</label>
+      <input id="employees" type="number" min="0" value="35">
+
+      <label>Annual turnover (INR)</label>
+      <input id="turnover" type="number" min="0" value="15000000">
+
+      <label>Customer locations (comma separated)</label>
+      <input id="customers" value="India">
+
+      <label>Employee locations (comma separated)</label>
+      <input id="employeeLocations" value="India">
+
+      <label>Data subject locations (comma separated)</label>
+      <input id="dataLocations" value="India">
+    </section>
+
+    <section class="card">
+      <h2>02 / Document analysis</h2>
+      <p class="small">
+        Paste a company policy, HR policy, information security policy,
+        or another document you want to assess.
+      </p>
+
+      <label>Document date</label>
+      <input id="docDate" type="date">
+
+      <label>Audit question</label>
+      <input id="auditQuery"
+        value="Audit workplace, data protection and cybersecurity compliance in India.">
+
+      <label>Document content</label>
+      <textarea id="document" placeholder="Paste your company policy or document here..."></textarea>
+
+      <button class="primary" id="auditButton" onclick="runAudit()">
+        Run Compliance Audit →
+      </button>
+      <div id="error" class="error"></div>
+
+      <p class="warning">
+        Do not paste confidential personal information, passwords,
+        customer records or sensitive company data into this prototype.
+      </p>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>03 / Regulatory knowledge base</h2>
+    <div id="sourceList" class="small">Loading regulatory records...</div>
+  </section>
+
+  <section class="card result" id="results">
+    <div class="eyebrow">Audit report</div>
+    <h2>Compliance assessment</h2>
+    <div id="auditStatus" class="small"></div>
+    <div class="stats">
+      <div class="stat"><strong id="findingCount">0</strong><span>Findings</span></div>
+      <div class="stat"><strong id="highCount">0</strong><span>High / Critical risks</span></div>
+      <div class="stat"><strong id="actionCount">0</strong><span>Action plans</span></div>
+    </div>
+
+    <h3>Compliance findings</h3>
+    <div id="findingList"></div>
+
+    <h3>Recommended action plans</h3>
+    <div id="actionList"></div>
+
+    <h3>Sources cited</h3>
+    <div id="citationList"></div>
+
+    <h3>Uncertainties</h3>
+    <div id="uncertainties"></div>
+
+    <p class="warning" id="disclaimer"></p>
+  </section>
+</main>
+
+<footer>
+  <strong>ComplyAI — Local Prototype</strong><br>
+  This software provides preliminary compliance information, not legal advice.
+  Its built-in regulatory reference records may be incomplete or outdated.
+  Verify applicable laws, amendments, commencement notifications and
+  jurisdiction-specific requirements with official sources and qualified
+  legal professionals before making decisions.
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[ch]);
+}
+
+function splitList(value) {
+  return value.split(",").map(x => x.trim()).filter(Boolean);
+}
+
+async function loadHealth() {
+  try {
+    const response = await fetch("/api/health");
+    const data = await response.json();
+    $("serverStatus").textContent =
+      `● Local engine online · ${data.loaded_india_documents} records`;
+  } catch {
+    $("serverStatus").textContent = "● Server unavailable";
+  }
+}
+
+async function loadSources() {
+  try {
+    const response = await fetch("/api/sources");
+    const data = await response.json();
+
+    $("sourceList").innerHTML = data.sources.map(source => `
+      <div class="source">
+        <strong>${escapeHTML(source.title)}</strong>
+        <p>${escapeHTML(source.authority)} · ${escapeHTML(source.jurisdiction)}
+        · ${source.sections} sections · ${escapeHTML(source.status)}</p>
+        <a href="${escapeHTML(source.source_url)}" target="_blank"
+           rel="noopener noreferrer">Official source link ↗</a>
+      </div>
+    `).join("");
+  } catch {
+    $("sourceList").textContent = "Unable to load sources.";
+  }
+}
+
+async function runAudit() {
+  const button = $("auditButton");
+  const error = $("error");
+  error.textContent = "";
+
+  const documentText = $("document").value.trim();
+
+  if (!documentText) {
+    error.textContent = "Please paste a document before running the audit.";
+    return;
+  }
+
+  const employeeCount = Number($("employees").value);
+  const turnover = Number($("turnover").value);
+
+  if (!Number.isInteger(employeeCount) || employeeCount < 0 ||
+      !Number.isFinite(turnover) || turnover < 0) {
+    error.textContent = "Please enter valid employee and turnover values.";
+    return;
+  }
+
+  const payload = {
+    business_profile: {
+      company_name: $("company").value.trim(),
+      country: $("country").value,
+      states: splitList($("state").value),
+      business_type: $("businessType").value,
+      industry: $("industry").value.trim(),
+      employee_count: employeeCount,
+      turnover_inr: turnover,
+      customers: splitList($("customers").value),
+      employees_locations: splitList($("employeeLocations").value),
+      data_subjects_locations: splitList($("dataLocations").value)
+    },
+    document_text: documentText,
+    document_date: $("docDate").value || null,
+    query: $("auditQuery").value.trim()
+  };
+
+  button.disabled = true;
+  button.textContent = "Analyzing document...";
+  $("results").style.display = "none";
+
+  try {
+    const response = await fetch("/api/audit", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "The audit could not be completed.");
+    }
+
+    renderResults(data);
+    $("results").style.display = "block";
+    $("results").scrollIntoView({behavior: "smooth"});
+  } catch (err) {
+    error.textContent = err.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Run Compliance Audit →";
+  }
+}
+
+function renderResults(data) {
+  const findings = data.findings || [];
+  const plans = data.action_plans || [];
+  const citations = data.sources_cited || [];
+  const high = findings.filter(f =>
+    ["HIGH", "CRITICAL"].includes(f.risk)
+  ).length;
+
+  $("auditStatus").textContent =
+    `Status: ${data.status} · Audit ID: ${data.audit_id}`;
+
+  $("findingCount").textContent = findings.length;
+  $("highCount").textContent = high;
+  $("actionCount").textContent = plans.length;
+
+  $("findingList").innerHTML = findings.length
+    ? findings.map(f => `
+      <div class="finding">
+        <span class="tag ${escapeHTML(f.risk)}">
+          ${escapeHTML(f.risk)} · ${escapeHTML(f.risk_score)}/100
+        </span>
+        <h3>${escapeHTML(f.title)}</h3>
+        <p>${escapeHTML(f.finding)}</p>
+        <p><strong>Evidence:</strong> ${escapeHTML(f.evidence)}</p>
+        <p><strong>Requirement:</strong> ${escapeHTML(f.requirement)}</p>
+        <p><strong>Recommended action:</strong> ${escapeHTML(f.action)}</p>
+        <p><strong>Grounding:</strong> ${escapeHTML(f.grounding_status)}</p>
+        <p><strong>Human review required:</strong>
+          ${f.requires_human_review ? "Yes" : "No"}</p>
+      </div>
+    `).join("")
+    : "<p class='small'>No findings were returned. This does not establish that the document is compliant.</p>";
+
+  $("actionList").innerHTML = plans.length
+    ? plans.map(p => `
+      <div class="finding">
+        <span class="tag">PRIORITY ${escapeHTML(p.priority)}</span>
+        <h3>${escapeHTML(p.problem)}</h3>
+        <p>${escapeHTML(p.why_it_matters)}</p>
+        <ol class="steps">
+          ${(p.recommended_steps || []).map(s =>
+            `<li>${escapeHTML(s)}</li>`).join("")}
+        </ol>
+        <p><strong>Owner:</strong> ${escapeHTML(p.owner || "Not specified")}</p>
+        <p><strong>Deadline:</strong> ${escapeHTML(p.deadline || "Not specified")}</p>
+        <p><strong>Professional review:</strong>
+          ${p.professional_review ? "Required" : "Not specified"}</p>
+      </div>
+    `).join("")
+    : "<p class='small'>No action plans returned.</p>";
+
+  $("citationList").innerHTML = citations.length
+  ? citations.map(c => `
+    <div class="source">
+      <strong>${escapeHTML(c.title || c.source_title || c.document_title || "Regulatory reference")}</strong>
+      <p>
+        ${escapeHTML(c.authority || "")}
+        ${c.section ? " · Section: " + escapeHTML(c.section) : ""}
+      </p>
+      <p>${escapeHTML(c.quoted_text || "")}</p>
+      ${c.source_url ? `
+        <p>
+          <a href="${escapeHTML(c.source_url)}"
+             target="_blank"
+             rel="noopener noreferrer">View official source ↗</a>
+        </p>
+      ` : ""}
+    </div>
+  `).join("")
+  : "<p class='small'>No source citations were returned.</p>";
+}
+loadHealth();
+loadSources();
+</script>
+</body>
+</html>

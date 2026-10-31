@@ -183,31 +183,61 @@ class GemmaService:
             "requires_professional_review": True,
         }
 
-    def _ollama_inference(self, profile_json: str, context: str, doc_text: str) -> Dict[str, Any]:
-        """Calls local Ollama instance running Gemma."""
-        import urllib.request
+        def _ollama_inference(self, profile_json: str, context: str, doc_text: str) -> Dict[str, Any]:
+         import urllib.request
+        import urllib.error
+
         prompt = COMPLIANCE_ANALYSIS_USER_PROMPT_TEMPLATE.format(
             business_profile_json=profile_json,
             regulatory_context=context,
             document_text=doc_text,
         )
+
         payload = {
             "model": self.model_name,
             "system": GEMMA_SYSTEM_PROMPT,
             "prompt": prompt,
             "stream": False,
             "format": "json",
-            "options": {"temperature": self.temperature, "num_predict": self.max_tokens},
+            "options": {
+                "temperature": self.temperature,
+                "num_predict": self.max_tokens,
+            },
         }
-        req = urllib.request.Request(
+
+        request = urllib.request.Request(
             "http://localhost:11434/api/generate",
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
+            method="POST",
         )
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                return json.loads(data.get("response", "{}"))
-        except Exception:
-            return self._mock_reasoning_inference(profile_json, context, doc_text)
 
+        try:
+            with urllib.request.urlopen(request, timeout=180) as response:
+                result = json.loads(response.read().decode("utf-8"))
+
+            model_output = result.get("response", "").strip()
+
+            if not model_output:
+                raise ValueError("Ollama returned an empty response.")
+
+            parsed = json.loads(model_output)
+
+            if not isinstance(parsed, dict):
+                raise ValueError("Gemma did not return a JSON object.")
+
+            required_fields = ["status", "findings"]
+            missing = [field for field in required_fields if field not in parsed]
+
+            if missing:
+                raise ValueError(f"Gemma response is missing fields: {missing}")
+
+            if not isinstance(parsed["findings"], list):
+                raise ValueError("Gemma findings must be a list.")
+
+            return parsed
+
+        except Exception as error:
+            raise RuntimeError(
+                f"Local Gemma inference failed using {self.model_name}: {error}"
+            ) from error

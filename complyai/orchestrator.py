@@ -88,12 +88,19 @@ class ComplianceOrchestrator:
         domains = [routed.primary_domain.value]
 
         # 4. Hybrid Retrieval over verified regulatory knowledge store
+       
+        retrieval_query = (
+            f"{audit_query} "
+            f"{' '.join(routed.extracted_keywords)} "
+            f"{sanitized_doc_text[:6000]}"
+)
+
         retrieved_sections = self.retriever.retrieve(
-            query=f"{audit_query} {' '.join(routed.extracted_keywords)}",
+            query=retrieval_query,
             business_context=business_profile.to_dict(),
             top_k=8,
             target_jurisdiction=business_profile.country,
-        )
+)
 
         if not retrieved_sections:
             return AuditResult(
@@ -147,6 +154,28 @@ class ComplianceOrchestrator:
             )
 
         # 7. Extract clauses from user business document
+        
+        # 7. Run local Gemma reasoning against applicable regulatory sources
+        try:
+            gemma_result = self._run_gemma_analysis(
+                business_profile=business_profile,
+                applicable_sections=applicable_sections,
+                document_text=sanitized_doc_text,
+            )
+
+            if not isinstance(gemma_result, dict):
+                raise ValueError("Gemma returned an invalid response.")
+
+            if not isinstance(gemma_result.get("findings"), list):
+                raise ValueError("Gemma response does not contain a valid findings list.")
+
+            gemma_findings = gemma_result["findings"]
+
+        except Exception as error:
+            raise RuntimeError(
+                f"ComplyAI local Gemma audit failed: {error}"
+            ) from error
+
         extracted_clauses = self.clause_analyzer.extract_clauses(sanitized_doc_text)
 
         # 8. Compare requirements against extracted clauses
@@ -211,6 +240,39 @@ class ComplianceOrchestrator:
                     if verif_res.is_valid:
                         cited_sources.append(citation)
 
+                     
+        # 13A. Validate Gemma findings against retrieved regulatory sources
+        allowed_sources = {
+            (
+                doc.document_id,
+                sec.section_number
+            )
+            for sec, score, doc in applicable_sections
+        }
+
+        validated_gemma_findings = []
+
+        for item in gemma_findings:
+            if not isinstance(item, dict):
+                continue
+
+            source_key = (
+                item.get("source_id"),
+                str(item.get("section", ""))
+            )
+
+            if source_key not in allowed_sources:
+                continue
+
+            if not all(
+                isinstance(item.get(field), str) and item[field].strip()
+                for field in ("title", "finding", "requirement", "action")
+            ):
+                continue
+
+            validated_gemma_findings.append(item)
+   
+
         # 14. Aggregate overall confidence
         overall_conf = ConfidenceScore(
             retrieval_confidence=0.94,
@@ -252,3 +314,40 @@ class ComplianceOrchestrator:
         # 16. Save to repository audit trail
         self.repository.save_audit_log(audit_id, result.to_dict())
         return result
+    
+    def _run_gemma_analysis(
+        self,
+        business_profile: BusinessProfile,
+        applicable_sections: List[Tuple[LegalSection, float, LegalDocument]],
+        document_text: str,
+    ) -> Dict[str, Any]:
+        """Run local Gemma analysis against the already-filtered legal sources."""
+
+        regulatory_blocks = []
+
+        for section, score, document in applicable_sections:
+            regulatory_blocks.append(
+                "\n".join([
+                    f"[SOURCE_ID: {document.document_id}]",
+                    f"Title: {document.title}",
+                    f"Authority: {document.authority}",
+                    f"Jurisdiction: {document.jurisdiction}",
+                    f"Section: {section.section_number}",
+                    f"Section title: {section.title}",
+                    f"Official source URL: {document.source_url}",
+                    f"Verified source text: {section.text}",
+                    "Requirements:",
+                    *[
+                        f"- {requirement.obligation}"
+                        for requirement in section.requirements
+                    ],
+                ])
+            )
+
+        regulatory_context = "\n\n".join(regulatory_blocks)
+
+        return self.gemma.generate_compliance_reasoning(
+            business_profile_json=business_profile.to_dict(),
+            regulatory_context=regulatory_context,
+            document_text=document_text,
+)
