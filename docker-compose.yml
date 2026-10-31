@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  complyai-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: complyai_engine
+    environment:
+      - DATABASE_URL=postgresql://complyai_user:complyai_secret@postgres:5432/complyai_regulatory_db
+      - PGVECTOR_ENABLED=true
+      - GEMMA_INFERENCE_BACKEND=mock
+      - GEMMA_MODEL=google/gemma-2-9b-it
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: complyai_postgres
+    environment:
+      POSTGRES_USER: complyai_user
+      POSTGRES_PASSWORD: complyai_secret
+      POSTGRES_DB: complyai_regulatory_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema/regulatory_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U complyai_user -d complyai_regulatory_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+

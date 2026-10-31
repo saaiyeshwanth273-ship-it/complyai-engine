@@ -1,0 +1,1 @@
+{"instruction": "Score the compliance risk and regulatory exposure.", "input": {"category": "CYBERSECURITY", "gap": "Failure to report within 6 hours", "authority": "CERT-In"}, "output": {"severity": "HIGH", "score": 85, "reason": "Statutory mandatory reporting deadline with regulatory scrutiny."}}

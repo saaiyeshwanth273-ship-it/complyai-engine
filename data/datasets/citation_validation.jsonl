@@ -1,0 +1,1 @@
+{"instruction": "Validate if the citation matches the verified statute.", "citation": {"source_id": "IND-DPDPA-2023", "section": "Section 8", "quoted_text": "reasonable security safeguards"}, "verified_text": "A Data Fiduciary shall make reasonable security safeguards to prevent personal data breach...", "output": {"is_valid": true, "status": "VALID", "match_score": 1.0}}
